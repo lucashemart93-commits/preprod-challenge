@@ -1,0 +1,7 @@
+# Terraform
+.terraform/
+terraform.exe
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
