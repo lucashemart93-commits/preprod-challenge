@@ -13,11 +13,29 @@ jobs:
       - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: Build de l'image Docker
-        run: docker build -t preprod-app .
+      - name: Configurer la clé SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/preprod-key.pem
+          chmod 600 ~/.ssh/preprod-key.pem
 
-      - name: Vérification du container
-        run: docker run -d -p 8080:80 --name preprod-test preprod-app
+      - name: Installer Docker sur EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem ubuntu@${{ secrets.EC2_HOST }} "
+            sudo apt-get update -y &&
+            sudo apt-get install -y docker.io docker-compose &&
+            sudo systemctl start docker &&
+            sudo systemctl enable docker &&
+            sudo usermod -aG docker ubuntu
+          "
 
-      - name: Test de santé
-        run: sleep 3 && curl http://localhost:8080
+      - name: Copier les fichiers sur EC2
+        run: |
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem -r ./src ./Dockerfile ./docker-compose.yml ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/preprod/
+
+      - name: Déployer sur EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem ubuntu@${{ secrets.EC2_HOST }} "
+            cd /home/ubuntu/preprod &&
+            sudo docker compose up -d --build
+          "
