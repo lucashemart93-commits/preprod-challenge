@@ -1,0 +1,23 @@
+name: Deploy Preprod
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Build de l'image Docker
+        run: docker build -t preprod-app .
+
+      - name: Vérification du container
+        run: docker run -d -p 8080:80 --name preprod-test preprod-app
+
+      - name: Test de santé
+        run: sleep 3 && curl http://localhost:8080
