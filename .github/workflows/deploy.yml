@@ -9,34 +9,24 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout du code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configurer la clé SSH
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/preprod-key.pem
-          chmod 600 ~/.ssh/preprod-key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/key.pem
+          chmod 600 ~/.ssh/key.pem
 
-      - name: Installer Docker sur EC2
+      - name: Install Docker on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem ubuntu@${{ secrets.EC2_HOST }} "
-            sudo apt-get update -y &&
-            sudo apt-get install -y docker.io docker-compose &&
-            sudo systemctl start docker &&
-            sudo systemctl enable docker &&
-            sudo usermod -aG docker ubuntu
-          "
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/key.pem ubuntu@${{ secrets.EC2_HOST }} "sudo apt-get update -y && sudo apt-get install -y docker.io && sudo systemctl start docker"
 
-      - name: Copier les fichiers sur EC2
+      - name: Copy files
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem -r ./src ./Dockerfile ./docker-compose.yml ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/preprod/
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/key.pem -r ./src ./Dockerfile ./docker-compose.yml ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/preprod/
 
-      - name: Déployer sur EC2
+      - name: Deploy
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/preprod-key.pem ubuntu@${{ secrets.EC2_HOST }} "
-            cd /home/ubuntu/preprod &&
-            sudo docker compose up -d --build
-          "
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/key.pem ubuntu@${{ secrets.EC2_HOST }} "cd /home/ubuntu/preprod && sudo docker compose up -d --build"
