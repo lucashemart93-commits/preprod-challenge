@@ -1,0 +1,7 @@
+services:
+  preprod-app:
+    build: .
+    container_name: preprod-app
+    ports:
+      - "8081:80"
+    restart: unless-stopped
